@@ -258,8 +258,12 @@ class Auth0 {
     }
 
     $this->authentication = new Authentication ($this->domain, $this->client_id, $this->client_secret, $this->audience, $this->scope, $this->guzzleOptions);
-
-    $this->user = $this->store->get("user");
+    
+    $userinfo = $this->store->get("user");
+    if ( is_string( $userinfo ) ) {
+      $userinfo = unserialize( $userinfo );
+    }
+    $this->user = $userinfo;
     $this->access_token = $this->store->get("access_token");
     $this->id_token = $this->store->get("id_token");
     $this->refresh_token = $this->store->get("refresh_token");
