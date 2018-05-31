@@ -1,39 +1,98 @@
 <?php
-
+/**
+ * Connections endpoints for the Management API.
+ *
+ * @package Auth0\SDK\API\Management
+ */
 namespace Auth0\SDK\API\Management;
 
-
-use Auth0\SDK\API\Header\ContentType;
-
-class Connections extends GenericResource 
+/**
+ * Class Connections.
+ * Handles requests to the Connections endpoint of the v2 Management API.
+ *
+ * @package Auth0\SDK\API\Management
+ */
+class Connections extends GenericResource
 {
     /**
-     * @param null|string $strategy
-     * @param null|string|array $fields
-     * @param null|string|array $include_fields
-     * @return mixed
+     * Get all Connections by page.
+     *
+     * @param null|string $strategy - Connection strategy to retrieve.
+     * @param null|string|array $fields - Fields to include or exclude from the result, empty to retrieve all fields.
+     * @param null|boolean $include_fields - True to include $fields, false to exclude $fields.
+     * @param null|string $name - Connection name to retrieve.
+     * @param integer $page - Page number to get, zero-based.
+     * @param null|integer $per_page - Number of results to get, null to return the default number.
+     *
+     * @return mixed|string
+     *
+     * @throws \Exception
+     *
+     * @link https://auth0.com/docs/api/management/v2#!/Connections/get_connections
      */
-    public function getAll($strategy = null, $fields = null, $include_fields = null) 
-    {
-        $request = $this->apiClient->get()
-                    ->connections();
+    public function getAll(
+        $strategy = null,
+        $fields = null,
+        $include_fields = null,
+        $name = null,
+        $page = 0,
+        $per_page = null
+    ) {
+        $request = $this->apiClient->method('get')->addPath('connections');
 
-        if ($strategy !== null) 
-        {
+        if (null !== $strategy) {
             $request->withParam('strategy', $strategy);
         }
 
-        if ($fields !== null) 
-        {
-            if (is_array($fields)) 
-            {
+        if (!empty($fields)) {
+            if (is_array($fields)) {
                 $fields = implode(',', $fields);
             }
             $request->withParam('fields', $fields);
         }
 
-        if ($include_fields !== null) 
-        {
+        if (null !== $include_fields) {
+            $request->withParam('include_fields', $include_fields);
+        }
+
+        if (null !== $name) {
+            $request->withParam('name', $name);
+        }
+
+        $request->withParam('page', abs(intval($page)));
+
+        if (null !== $per_page) {
+            $request->withParam('per_page', $per_page);
+        }
+
+        return $request->call();
+    }
+
+    /**
+     * Get a single Connection by ID.
+     *
+     * @param string $id - Connection ID to get.
+     * @param null|string|array $fields - Fields to include or exclude from the result, empty to retrieve all fields.
+     * @param null|boolean $include_fields - True to include $fields, false to exclude $fields.
+     *
+     * @return mixed|string
+     *
+     * @throws \Exception
+     *
+     * @link https://auth0.com/docs/api/management/v2#!/Connections/get_connections_by_id
+     */
+    public function get($id, $fields = null, $include_fields = null)
+    {
+        $request = $this->apiClient->method('get')->addPath('connections', $id);
+
+        if (!empty($fields)) {
+            if (is_array($fields)) {
+                $fields = implode(',', $fields);
+            }
+            $request->withParam('fields', $fields);
+        }
+
+        if (null !== $include_fields) {
             $request->withParam('include_fields', $include_fields);
         }
 
@@ -41,81 +100,87 @@ class Connections extends GenericResource
     }
 
     /**
-     * @param string $id
-     * @param null|string|array $fields
-     * @param null|string|array $include_fields
-     * @return mixed
+     * Delete a Connection by ID.
+     *
+     * @param string $id - Connection ID to delete.
+     *
+     * @return mixed|string
+     *
+     * @throws \Exception
+     *
+     * @link https://auth0.com/docs/api/management/v2#!/Connections/delete_connections_by_id
      */
-    public function get($id, $fields = null, $include_fields = null) 
+    public function delete($id)
     {
-        $request = $this->apiClient->get()
-            ->connections($id);
-
-        if ($fields !== null) 
-        {
-            if (is_array($fields)) 
-            {
-                $fields = implode(',', $fields);
-            }
-            $request->withParam('fields', $fields);
-        }
-
-        if ($include_fields !== null) 
-        {
-            $request->withParam('include_fields', $include_fields);
-        }
-
-        return $request->call();
-    }
-
-    /**
-     * @param string $id
-     * @return mixed
-     */
-    public function delete($id) 
-    {
-        return $this->apiClient->delete()
-            ->connections($id)
+        return $this->apiClient->method('delete')
+            ->addPath('connections', $id)
             ->call();
     }
 
     /**
-     * @param string $id
-     * @param string $email
-     * @return mixed
+     * Delete a specific User for a Connection.
+     *
+     * @param string $id - Connection ID (currently only database connections are supported).
+     * @param string $email - Email of the user to delete.
+     *
+     * @return mixed|string
+     *
+     * @throws \Exception
+     *
+     * @link https://auth0.com/docs/api/management/v2#!/Connections/delete_users_by_email
      */
-    public function deleteUser($id, $email) 
+    public function deleteUser($id, $email)
     {
-        return $this->apiClient->delete()
-            ->connections($id)
-            ->users()
+        return $this->apiClient->method('delete')
+            ->addPath('connections', $id)
+            ->addPath('users')
             ->withParam('email', $email)
             ->call();
     }
 
     /**
-     * @param array $data
-     * @return mixed
+     * Create a Connection.
+     *
+     * @param array $data - Connection create data; "name" and "strategy" fields are required.
+     *
+     * @return mixed|string
+     *
+     * @throws \Exception
+     *
+     * @link https://auth0.com/docs/api/management/v2#!/Connections/post_connections
      */
-    public function create($data) 
+    public function create($data)
     {
-        return $this->apiClient->post()
-            ->connections()
-            ->withHeader(new ContentType('application/json'))
+        if (empty($data['name'])) {
+            throw new \Exception('Missing required "name" field.');
+        }
+
+        if (empty($data['strategy'])) {
+            throw new \Exception('Missing required "strategy" field.');
+        }
+
+        return $this->apiClient->method('post')
+            ->addPath('connections')
             ->withBody(json_encode($data))
             ->call();
     }
 
     /**
-     * @param string $id
-     * @param array $data
-     * @return mixed
+     * Update a Connection.
+     *
+     * @param string $id - Connection ID to update.
+     * @param array $data - Update data.
+     *
+     * @return mixed|string
+     *
+     * @throws \Exception
+     *
+     * @link https://auth0.com/docs/api/management/v2#!/Connections/patch_connections_by_id
      */
-    public function update($id, $data) 
+    public function update($id, $data)
     {
-        return $this->apiClient->patch()
-            ->connections($id)
-            ->withHeader(new ContentType('application/json'))
+        return $this->apiClient->method('patch')
+            ->addPath('connections', $id)
             ->withBody(json_encode($data))
             ->call();
     }

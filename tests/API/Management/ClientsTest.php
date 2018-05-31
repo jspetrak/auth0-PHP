@@ -138,15 +138,12 @@ class ClientsTest extends BasicCrudTest
      */
     protected function getAll($client, $created_entity)
     {
-        $create_body = $this->getCreateBody();
-        $fields = array_keys($create_body);
+        $fields = array_keys($this->getCreateBody());
         $fields[] = $this->id_name;
-        $page = 1;
-        $per_page = 1;
 
         // Check that pagination works.
-        $all_results = $client->getAll($fields, true, $this->create_app_type, $page, $per_page);
-        $this->assertEquals($per_page, count($all_results));
+        $all_results = $client->getAll($fields, true, $this->create_app_type, 1, 1);
+        $this->assertEquals(1, count($all_results));
         $this->assertEquals(count($fields), count($all_results[0]));
 
         // If we want to check for the created result, we need all Clients.
